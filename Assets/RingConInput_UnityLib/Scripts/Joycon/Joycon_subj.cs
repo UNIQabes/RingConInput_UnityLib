@@ -7,7 +7,9 @@ using System.Threading;
 using UnityEngine.SceneManagement;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using Cysharp.Threading.Tasks.Linq;
 using UnityEngine.LowLevel;
+
 
 
 //新しく割り当てられるjoyconを探す時、既に接続しているhid_deviceかどうかを判断できる?
@@ -115,8 +117,8 @@ public class Joycon_subj
 
     Thread HidReadThreadR = null;
     Thread HidReadThreadL = null;
-    Queue<byte[]> ReportQueue_R;
-    Queue<byte[]> ReportQueue_L;
+    Queue<byte[]> _reportQueue_R;
+    Queue<byte[]> _reportQueue_L;
 
     static CancellationTokenSource _cTokenSourceOnAppQuit;
     static CancellationToken _cancellationTokenOnAppQuit;
@@ -230,7 +232,8 @@ public class JoyConConnection
     public string Serial_Number { get; private set; }
     private List<Joycon_obs> _observers = null;
     private Thread _hidReadThread = null;
-    private Queue<byte[]> _reportQueue = null;
+    private Channel<byte[]> _reportQueue=null;
+
     private IntPtr _joycon_dev = IntPtr.Zero;
 
     
@@ -250,7 +253,7 @@ public class JoyConConnection
         Serial_Number = serial_Number;
         IsConnecting = false;
         _hidReadThread = null;
-        _reportQueue = new Queue<byte[]>();
+        _reportQueue = Channel.CreateSingleConsumerUnbounded<byte[]>();
         _joycon_dev = IntPtr.Zero;
         _observers = new List<Joycon_obs>();
         ThisFrameInputs = new List<byte[]>();
@@ -261,17 +264,19 @@ public class JoyConConnection
 
     public void PopInputReportToJoyconObs()
     {
-        int reportCount = _reportQueue.Count;
+        
+
         List<byte[]> sentReportInOneFrame = new List<byte[]>();
-        for (int i = 0; i < reportCount; i++)
+        
+        while (_reportQueue.Reader.TryRead(out byte[] inputReportPtrBuf))
         {
-            byte[] inputReport = _reportQueue.Dequeue();
-            sentReportInOneFrame.Add(inputReport);
+            sentReportInOneFrame.Add(inputReportPtrBuf);
         }
+        
         ThisFrameInputs = sentReportInOneFrame;
         foreach (Joycon_obs aObs in _observers)
         {
-            aObs.OnReadReport(sentReportInOneFrame);
+            aObs.OnReadReport(Serial_Number,sentReportInOneFrame);
         }
         _subCmdReplysInThisFrame = sentReportInOneFrame;
     }
@@ -333,7 +338,7 @@ public class JoyConConnection
 
         HIDapi.hid_free_enumeration(topDevice);
         
-        _reportQueue = new Queue<byte[]>();
+        _reportQueue = Channel.CreateSingleConsumerUnbounded<byte[]>();
         ThisFrameInputs = new List<byte[]>();
         subCmdQueue = new Queue<byte[]>();
         _subCmdReplysInThisFrame = new List<byte[]>();
@@ -550,7 +555,7 @@ public class JoyConConnection
             int ret_read = HIDapi.hid_read(_joycon_dev, inputReport, 50);
             if (ret_read > 0 && inputReport[0]!=0x00)
             {
-                _reportQueue.Enqueue(inputReport);
+                _reportQueue.Writer.TryWrite(inputReport);
                 sw.Reset();
                 sw.Start();
                 isCheckSent = false;

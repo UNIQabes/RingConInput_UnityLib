@@ -21,37 +21,49 @@ public class MainJoyconInput : Joycon_obs
             return instance;
         }
     }
-    
-    
     private static CancellationTokenSource cancellationTokenSourceOnAppQuit;
     private static CancellationToken cancellationTokenOnAppQuit;//Application終了時にCancellされるToken
+    
+    //JoyconRについての変数
+    //MainのJoyConのJoyConConnection nullでないなら、このJoyConConnectionに登録している
+    private static JoyConConnection _joyconConnection_R;
+    public static JoyConConnectInfo ConnectInfo_JoyconR = JoyConConnectInfo.JoyConIsNotFound;
+    //MainのJoyConのシリアルナンバー 接続しているJoyCon、もしくは接続していないときは優先して登録するJoyCon。空の文字列の時は好きに登録すれば良い。
+    public static string SerialNumber_R { get; private set; } = "";
 
     private static Quaternion JoyconR_InitJoyconCoordPose = Quaternion.identity;
     private static Vector3 JoyconR_DefaultJoyconCoordDownVec = Vector3.up;
     public static Quaternion JoyconR_JoyconCoordPose { get; private set; }=Quaternion.identity;
     public static Quaternion JoyconR_JoyconCoordSmoothedPose { get; private set; }
+    public static float RingconStrain { get; private set; }
+    public static bool RButton_JoyconRInput { get; private set; }
+    public static bool ZRButton_JoyconRInput { get; private set; }
+    public static bool AButton_JoyconRInput { get; private set; }
+    private static List<byte[]> _inputReportsInThisFrame_JoyconR = null;
+    public static float JoyconR_GyroXCalibration=0;
+    public static float JoyconR_GyroYCalibration=0;
+    public static float JoyconR_GyroZCalibration=0;
     
-
-    public static float ringconStrain { get; private set; }
-    public static bool RButton { get; private set; }
-    public static bool ZRButton { get; private set; }
-    public static bool AButton { get; private set; }
     
-
+    //JoyconLについての変数
+    private static JoyConConnection _joyconConnection_L;
+    public static JoyConConnectInfo ConnectInfo_JoyconL = JoyConConnectInfo.JoyConIsNotFound;
     //MainのJoyConのシリアルナンバー 接続しているJoyCon、もしくは接続していないときは優先して登録するJoyCon。空の文字列の時は好きに登録すれば良い。
-    public static string SerialNumber_R { get; private set; } = "";
-    //MainのJoyConのJoyConConnection nullでないなら、このJoyConConnectionに登録している
-    private static JoyConConnection _joyconConnection_R;
+    public static string SerialNumber_L { get; private set; } = "";
 
-    public static JoyConConnectInfo ConnectInfo = JoyConConnectInfo.JoyConIsNotFound;
-
-    private static List<byte[]> _inputReportsInThisFrame = null;//コルーチンでも実装できそう
-    private static bool _isReadyPolling = false;
-
-
-    public static float GyroXCalibration=0;
-    public static float GyroYCalibration=0;
-    public static float GyroZCalibration=0;
+    private static Quaternion JoyconL_InitJoyconCoordPose = Quaternion.identity;
+    private static Vector3 JoyconL_DefaultJoyconCoordDownVec = Vector3.up;
+    public static Quaternion JoyconL_JoyconCoordPose { get; private set; }=Quaternion.identity;
+    public static Quaternion JoyconL_JoyconCoordSmoothedPose { get; private set; }
+    public static bool RButton_JoyconLInput { get; private set; }
+    public static bool ZRButton_JoyconLInput { get; private set; }
+    public static bool AButton_JoyconLInput { get; private set; }
+    private static List<byte[]> _inputReportsInThisFrame_JoyconL = null;
+    public static float JoyconL_GyroXCalibration=0;
+    public static float JoyconL_GyroYCalibration=0;
+    public static float JoyconL_GyroZCalibration=0;
+    
+    
    
     
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -69,7 +81,7 @@ public class MainJoyconInput : Joycon_obs
         IsTryingReconnectJoycon = true;
 
 
-        ringconStrain = 0;
+        RingconStrain = 0;
         Application.quitting += OnApplicatioQuitStatic;
         updatestatic().Forget();
         reconnectTask().Forget();
@@ -84,15 +96,15 @@ public class MainJoyconInput : Joycon_obs
         while (!cancellationTokenOnAppQuit.IsCancellationRequested)
         {
             
-            DebugOnGUI.Log($"{SerialNumber_R} {ConnectInfo}", "ConnectInfo");
+            DebugOnGUI.Log($"{SerialNumber_R} {ConnectInfo_JoyconR}", "ConnectInfo");
             if (_joyconConnection_R!=null&&!_joyconConnection_R.IsConnecting)
             {
-                if (ConnectInfo != JoyConConnectInfo.JoyConIsNotFound)
+                if (ConnectInfo_JoyconR != JoyConConnectInfo.JoyConIsNotFound)
                 {
                     DebugOnGUI.Log("接続が切れたよ", "Joycon");
                     Debug.Log("接続が切れたよ!!!");
                 }
-                ConnectInfo = JoyConConnectInfo.JoyConIsNotFound;
+                ConnectInfo_JoyconR = JoyConConnectInfo.JoyConIsNotFound;
             }
             await UniTask.Yield(PlayerLoopTiming.EarlyUpdate,cancellationTokenOnAppQuit);
         }
@@ -114,7 +126,7 @@ public class MainJoyconInput : Joycon_obs
     {
         while (!cancellationTokenOnAppQuit.IsCancellationRequested)
         {
-            if (ConnectInfo!=JoyConConnectInfo.JoyConIsReady & IsTryingReconnectJoycon)
+            if (ConnectInfo_JoyconR!=JoyConConnectInfo.JoyConIsReady & IsTryingReconnectJoycon)
             {
                 Debug.Log("再接続を試行します");
                 DebugOnGUI.Log("再接続を試行します", "Joycon");
@@ -178,7 +190,7 @@ public class MainJoyconInput : Joycon_obs
 
         JoyconR_JoyconCoordPose = JoyconR_InitJoyconCoordPose;
         JoyconR_JoyconCoordSmoothedPose = JoyconR_InitJoyconCoordPose;
-        ringconStrain = 0;
+        RingconStrain = 0;
         return true;
     }
 
@@ -199,7 +211,7 @@ public class MainJoyconInput : Joycon_obs
         
         try
         {
-            ConnectInfo = JoyConConnectInfo.SettingUpJoycon;
+            ConnectInfo_JoyconR = JoyConConnectInfo.SettingUpJoycon;
             Debug.Log("セットアップします!");
             DebugOnGUI.Log("セットアップ開始", "Joycon");
 
@@ -214,6 +226,10 @@ public class MainJoyconInput : Joycon_obs
             DebugOnGUI.Log($"{SerialNumber_R}:Enable IMU data", "Joycon");
             // Enable IMU data
             await _joyconConnection_R.SendSubCmd_And_WaitReply(new byte[] { 0x40, 0x01 }, ReplyBuf, cancellationTokenOnAppQuit);
+            
+            DebugOnGUI.Log($"{SerialNumber_R}:Set IMU sensitivity 0x41", "Joycon");
+            //Set IMU sensitivity 0x41
+            await _joyconConnection_R.SendSubCmd_And_WaitReply(new byte[] { 0x41, 0x03, 0x00, 0x01 , 0x01 }, ReplyBuf, cancellationTokenOnAppQuit);
 
             DebugOnGUI.Log($"{SerialNumber_R}:Set input report mode to 0x30", "Joycon");
             //Set input report mode to 0x30
@@ -250,13 +266,13 @@ public class MainJoyconInput : Joycon_obs
 
             _joyconConnection_R.SendRumble(1000,0.5f,400,0.5f);
 
-            ConnectInfo = JoyConConnectInfo.JoyConIsReady;
+            ConnectInfo_JoyconR = JoyConConnectInfo.JoyConIsReady;
             Debug.Log($"{SerialNumber_R}:Joyconのセットアップが完了しました");
             DebugOnGUI.Log("Joyconのセットアップが完了しました", "Joycon");
         }
         catch(OperationCanceledException e)
         {
-            ConnectInfo = JoyConConnectInfo.JoyConIsNotFound;
+            ConnectInfo_JoyconR = JoyConConnectInfo.JoyConIsNotFound;
             DebugOnGUI.Log("JoyConのセットアップに失敗しました", "Joycon");
             Debug.Log("JoyConのセットアップに失敗しました。");
         }
@@ -265,15 +281,15 @@ public class MainJoyconInput : Joycon_obs
 
     public static async UniTaskVoid SetupAgain()
     {
-        if (ConnectInfo == JoyConConnectInfo.JoyConIsReady)
+        if (ConnectInfo_JoyconR == JoyConConnectInfo.JoyConIsReady)
         {
             await joyConSetUp(cancellationTokenOnAppQuit);
         }
     }
 
-    public override void OnReadReport(List<byte[]> reports)
+    public override void OnReadReport(string serialNumver,List<byte[]> reports)
     {
-        _inputReportsInThisFrame = reports;
+        _inputReportsInThisFrame_JoyconR = reports;
         int x30ReportNum = 0;
         foreach (byte[] report in reports)
         {
@@ -297,7 +313,7 @@ public class MainJoyconInput : Joycon_obs
                 if (report[0] == 0x30)
                 {
                     float sec = Time.deltaTime / x30ReportNum;
-                    ringconStrain = BitConverter.ToInt16(report, 39);
+                    RingconStrain = BitConverter.ToInt16(report, 39);
                     float gyro_x1 = 0.070f * (float)BitConverter.ToInt16(report, 19) ;
                     float gyro_y1 = 0.070f * (float)BitConverter.ToInt16(report, 21) ;
                     float gyro_z1 = 0.070f * (float)BitConverter.ToInt16(report, 23) ;
@@ -320,9 +336,9 @@ public class MainJoyconInput : Joycon_obs
                     JoyconR_JoyconCoordPose = ApplyAngVToPose(JoyconR_JoyconCoordPose, new Vector3(gyro_x2, gyro_y2, gyro_z2), sec/2);
                     JoyconR_JoyconCoordSmoothedPose = ApplyAngVToPose(JoyconR_JoyconCoordSmoothedPose, new Vector3(gyro_x2, gyro_y2, gyro_z2), sec/2);
                     byte buttonStatus = report[3];
-                    RButton = (buttonStatus & 0b01000000) > 0;
-                    ZRButton = (buttonStatus & 0b10000000) > 0;
-                    AButton = (buttonStatus & 0b00001000) > 0;
+                    RButton_JoyconRInput = (buttonStatus & 0b01000000) > 0;
+                    ZRButton_JoyconRInput = (buttonStatus & 0b10000000) > 0;
+                    AButton_JoyconRInput = (buttonStatus & 0b00001000) > 0;
                 }
             }
         }
@@ -333,16 +349,29 @@ public class MainJoyconInput : Joycon_obs
     //poseが角速度angV(単位:deg/sec)でsec秒回転した後の姿勢を返す
     public static Quaternion ApplyAngVToPose(Quaternion pose,Vector3 angV,float sec)
     {
-        //return Quaternion.AngleAxis(180,Vector3.up) * pose;
-        //return Quaternion.AngleAxis(angV.magnitude*sec,pose*angV);
-        return (Quaternion.AngleAxis(angV.magnitude*sec,pose*angV) * pose);
+
+        return (Quaternion.AngleAxis(angV.magnitude*sec*2.6f,pose*angV) * pose);
+        //return (Quaternion.AngleAxis(angV.magnitude*sec,pose*angV) * pose);
         
     }
     
     //poseにかかる加速度acc(単位:g)が実際の重力の大きさに近かった場合、accが下方向となるように補正したposeを返す
     public static Quaternion CorrectPoseByAcc(Quaternion pose,Vector3 acc)
     {
-        
+        //blend
+        float gravityAndAcc_magDiff=Mathf.Abs(1 - (acc.magnitude));
+        if (gravityAndAcc_magDiff < 0.01f)
+        {
+            Vector3 gravityV = pose*(-acc);
+            Quaternion switch_correctionRotation=V3_MyUtil.RotateV2V(gravityV,JoyconR_DefaultJoyconCoordDownVec);
+            Quaternion switch_correctedPose=switch_correctionRotation*pose;
+            Quaternion blend_correctedPose=Quaternion.Slerp(switch_correctedPose,pose,gravityAndAcc_magDiff/0.01f);
+            return blend_correctedPose;
+        }
+        return pose;
+
+        //Switch
+        /*
         if (Mathf.Abs(1 - (acc.magnitude)) < 0.001f)
         {
             Vector3 gravityV = pose*(-acc);
@@ -350,6 +379,7 @@ public class MainJoyconInput : Joycon_obs
             return correction_rotation * pose;
         }
         return pose;
+        */
     }
 
     
@@ -363,15 +393,15 @@ public class MainJoyconInput : Joycon_obs
         float threshold = 0.5f;
         while (counter <= 6)
         {
-            if (ConnectInfo != JoyConConnectInfo.JoyConIsReady)
+            if (ConnectInfo_JoyconR != JoyConConnectInfo.JoyConIsReady)
             {
                 Debug.Log("キャリブレーション設定中止");
                 return;
             }
-            if (_inputReportsInThisFrame != null && _inputReportsInThisFrame.Count > 0)
+            if (_inputReportsInThisFrame_JoyconR != null && _inputReportsInThisFrame_JoyconR.Count > 0)
             {
 
-                foreach (byte[] aInputReport in _inputReportsInThisFrame)
+                foreach (byte[] aInputReport in _inputReportsInThisFrame_JoyconR)
                 {
                     float gyro_x1 = 0.070f * (float)BitConverter.ToInt16(aInputReport, 19);
                     float gyro_y1 = 0.070f * (float)BitConverter.ToInt16(aInputReport, 21);
@@ -397,11 +427,11 @@ public class MainJoyconInput : Joycon_obs
 
         
 
-        GyroXCalibration = -gyroVInStaticCondition.x;
-        GyroYCalibration = -gyroVInStaticCondition.y;
-        GyroZCalibration = -gyroVInStaticCondition.z;
+        JoyconR_GyroXCalibration = -gyroVInStaticCondition.x;
+        JoyconR_GyroYCalibration = -gyroVInStaticCondition.y;
+        JoyconR_GyroZCalibration = -gyroVInStaticCondition.z;
         
-        Debug.Log($"キャリブレーション設定完了:{new Vector3(GyroXCalibration, GyroYCalibration, GyroZCalibration)}(deg/s)") ;
+        Debug.Log($"キャリブレーション設定完了:{new Vector3(JoyconR_GyroXCalibration, JoyconR_GyroYCalibration, JoyconR_GyroZCalibration)}(deg/s)") ;
     }
 }
 

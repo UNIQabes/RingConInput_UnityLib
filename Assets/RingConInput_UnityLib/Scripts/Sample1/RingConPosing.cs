@@ -16,11 +16,11 @@ public class RingConPosing : MonoBehaviour
     {
         //JoyconPose_R_Ring
         //this.transform.rotation = V3_MyUtil.rotationWithMatrix(MainJoyconInput.JoyconPose_R_Ring,
-        this.transform.rotation = V3_MyUtil.rotationWithMatrix(MainJoyconInput.JoyconR_JoyconCoordPose,
+        this.transform.rotation = V3_MyUtil.rotationWithMatrix(MainJoyconInput.JoyconR_JoyconCoordSmoothedPose,
             new Vector3(-1, 0, 0),
             new Vector3(0, 1, 0),
             new Vector3(0, 0, -1));
-        float strainDelta=MainJoyconInput.ringconStrain-4500;
+        float strainDelta=MainJoyconInput.RingconStrain-4500;
         this.transform.localScale = new Vector3(1-strainDelta/5000, 1 + strainDelta / 5000, 1);
     }
 
