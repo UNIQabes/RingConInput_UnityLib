@@ -284,7 +284,6 @@ public class JoyConConnection
     //JoyConとの接続時、必ずこれが呼ばれる。この関数は外部の利用者から呼ばれる。
     public bool ConnectToJoyCon()
     {
-
         if (IsConnecting)
         {
             return true;
@@ -463,7 +462,6 @@ public class JoyConConnection
         }
         //基本的にはCancellationTokenのCancellによって停止するため、この部分に到達することはない
         Debug.Log($"{Serial_Number} WaitSubCommandLoop Stop");
-        
     }
 
     public void SendRumble(float hf,float hfAmp,float lf,float lfAmp)

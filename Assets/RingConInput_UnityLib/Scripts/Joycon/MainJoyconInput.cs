@@ -27,7 +27,9 @@ public class MainJoyconInput : Joycon_obs
     //JoyconRについての変数
     //MainのJoyConのJoyConConnection nullでないなら、このJoyConConnectionに登録している
     private static JoyConConnection _joyconConnection_R;
-    public static JoyConConnectInfo ConnectInfo_JoyconR = JoyConConnectInfo.JoyConIsNotFound;
+
+    public static JoyConConnectInfo ConnectInfo_JoyconR { get; private set; } = JoyConConnectInfo.JoyConIsNotFound;
+
     //MainのJoyConのシリアルナンバー 接続しているJoyCon、もしくは接続していないときは優先して登録するJoyCon。空の文字列の時は好きに登録すれば良い。
     public static string SerialNumber_R { get; private set; } = "";
 
@@ -40,28 +42,11 @@ public class MainJoyconInput : Joycon_obs
     public static bool ZRButton_JoyconRInput { get; private set; }
     public static bool AButton_JoyconRInput { get; private set; }
     private static List<byte[]> _inputReportsInThisFrame_JoyconR = null;
-    public static float JoyconR_GyroXCalibration=0;
-    public static float JoyconR_GyroYCalibration=0;
-    public static float JoyconR_GyroZCalibration=0;
+    public static float JoyconR_GyroXCalibration{ get; private set; }=0;
+    public static float JoyconR_GyroYCalibration{ get; private set; }=0;
+    public static float JoyconR_GyroZCalibration{ get; private set; }=0;
     
     
-    //JoyconLについての変数
-    private static JoyConConnection _joyconConnection_L;
-    public static JoyConConnectInfo ConnectInfo_JoyconL = JoyConConnectInfo.JoyConIsNotFound;
-    //MainのJoyConのシリアルナンバー 接続しているJoyCon、もしくは接続していないときは優先して登録するJoyCon。空の文字列の時は好きに登録すれば良い。
-    public static string SerialNumber_L { get; private set; } = "";
-
-    private static Quaternion JoyconL_InitJoyconCoordPose = Quaternion.identity;
-    private static Vector3 JoyconL_DefaultJoyconCoordDownVec = Vector3.up;
-    public static Quaternion JoyconL_JoyconCoordPose { get; private set; }=Quaternion.identity;
-    public static Quaternion JoyconL_JoyconCoordSmoothedPose { get; private set; }
-    public static bool RButton_JoyconLInput { get; private set; }
-    public static bool ZRButton_JoyconLInput { get; private set; }
-    public static bool AButton_JoyconLInput { get; private set; }
-    private static List<byte[]> _inputReportsInThisFrame_JoyconL = null;
-    public static float JoyconL_GyroXCalibration=0;
-    public static float JoyconL_GyroYCalibration=0;
-    public static float JoyconL_GyroZCalibration=0;
     
     
    
@@ -200,8 +185,7 @@ public class MainJoyconInput : Joycon_obs
 
     private static async UniTask joyConSetUp(CancellationToken cancellationToken)
     {
-
-
+        
         //await UniTask.DelayFrame(100, cancellationToken: cancellationToken);
         //実行コンテクスト(?というらしい)をPreUpdateに切り替える
         await UniTask.Yield(PlayerLoopTiming.PreUpdate, cancellationTokenOnAppQuit);
