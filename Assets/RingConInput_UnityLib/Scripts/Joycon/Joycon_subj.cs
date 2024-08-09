@@ -50,6 +50,7 @@ public class Joycon_subj
         //Application終了時の処理を設定
         Application.quitting += OnApplicatioQuitStatic;
         UpdateStatic().Forget();
+        FixedUpdateStatic().Forget();
 
         _isAfterInit = true;
         _afterInitCallback();
@@ -85,6 +86,35 @@ public class Joycon_subj
         }
         Debug.Log("JoyconSubj.UpdateStatic stop");
     }
+    private static async UniTaskVoid FixedUpdateStatic()
+    {
+        
+        //アプリが動いている間は動いている。
+        while (!_cancellationTokenOnAppQuit.IsCancellationRequested)
+        {
+            
+            foreach (KeyValuePair<string, JoyConConnection> aPair in _joyConConnections)
+            {
+                if (aPair.Value.IsConnecting)
+                {
+                    aPair.Value.PopInputReportToFixedUpdateJoyconObs();
+                }
+            }
+            
+            try
+            {
+                await UniTask.Yield(PlayerLoopTiming.FixedUpdate, _cancellationTokenOnAppQuit);
+            }
+            catch(System.Exception e)
+            {
+                DebugOnGUI.Log($"{e}", "error");
+                throw e;
+            }
+
+        }
+        Debug.Log("JoyconSubj.FixedUpdateStatic stop");
+    }
+    
 
     private static void OnApplicatioQuitStatic()
     {
@@ -119,8 +149,7 @@ public class Joycon_subj
 
     Thread HidReadThreadR = null;
     Thread HidReadThreadL = null;
-    Queue<byte[]> _reportQueue_R;
-    Queue<byte[]> _reportQueue_L;
+
 
     static CancellationTokenSource _cTokenSourceOnAppQuit;
     static CancellationToken _cancellationTokenOnAppQuit;
@@ -235,8 +264,10 @@ public class JoyConConnection
     public bool IsJoyconRight { get; private set; } = false;
     public string Serial_Number { get; private set; }
     private List<Joycon_obs> _observers = null;
+    private List<Joycon_obs> _fixedUpdateObservers = null;
     private Thread _hidReadThread = null;
     private Channel<byte[]> _reportQueue=null;
+    private Channel<byte[]> _fixedUpdate_reportQueue=null;
     
     //Debug
     private Channel<TimeSpan> _swQueue=null;
@@ -262,11 +293,13 @@ public class JoyConConnection
         IsConnecting = false;
         _hidReadThread = null;
         _reportQueue = Channel.CreateSingleConsumerUnbounded<byte[]>();
+        _fixedUpdate_reportQueue=Channel.CreateSingleConsumerUnbounded<byte[]>();
         _swQueue= Channel.CreateSingleConsumerUnbounded<TimeSpan>();
         wholeWatch= new System.Diagnostics.Stopwatch();
         wholeWatch.Start();
         _joycon_dev = IntPtr.Zero;
         _observers = new List<Joycon_obs>();
+        _fixedUpdateObservers= new List<Joycon_obs>();
         ThisFrameInputs = new List<byte[]>();
         subCmdQueue = new Queue<byte[]>();
         _subCmdReplysInThisFrame = new List<byte[]>();
@@ -286,11 +319,6 @@ public class JoyConConnection
         {
             LastTime=aTime;
         }
-
-        
-
-        
-
         ThisFrameInputs = sentReportInOneFrame;
         foreach (Joycon_obs aObs in _observers)
         {
@@ -307,9 +335,25 @@ public class JoyConConnection
         {
             //DebugOnGUI.Log($"DelayTime:0ms", "DelayTime");
         }
-        
-
     }
+
+    public void PopInputReportToFixedUpdateJoyconObs()
+    {
+        List<byte[]> sentReportInOneFrame = new List<byte[]>();
+        
+        while (_fixedUpdate_reportQueue.Reader.TryRead(out byte[] inputReportPtrBuf))
+        {
+            sentReportInOneFrame.Add(inputReportPtrBuf);
+        }
+        ThisFrameInputs = sentReportInOneFrame;
+        foreach (Joycon_obs aObs in _fixedUpdateObservers)
+        {
+            aObs.OnReadReport(Serial_Number,sentReportInOneFrame);
+        }
+    }
+
+
+
 
     //JoyConとの接続時、必ずこれが呼ばれる。この関数は外部の利用者から呼ばれる。
     public bool ConnectToJoyCon()
@@ -585,6 +629,7 @@ public class JoyConConnection
             {
                 _swQueue.Writer.TryWrite(wholeWatch.Elapsed);
                 _reportQueue.Writer.TryWrite(inputReport);
+                _fixedUpdate_reportQueue.Writer.TryWrite(inputReport);
                 sw.Reset();
                 sw.Start();
                 isCheckSent = false;
@@ -667,6 +712,16 @@ public class JoyConConnection
     public void DelObserver(Joycon_obs joycon_Obs)
     {
         _observers.Remove(joycon_Obs);
+    }
+    
+    public void AddFixedUpdateObserver(Joycon_obs joycon_Obs)
+    {
+        _fixedUpdateObservers.Add(joycon_Obs);
+    }
+
+    public void DelFixedUpdateObserver(Joycon_obs joycon_Obs)
+    {
+        _fixedUpdateObservers.Remove(joycon_Obs);
     }
     
 }

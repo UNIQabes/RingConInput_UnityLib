@@ -161,7 +161,8 @@ public class MainJoyconInput : Joycon_obs
             if (newJoyConConnection.ConnectToJoyCon())
             {
                 //ConnectInfo = JoyConConnectInfo.SettingUpJoycon;
-                newJoyConConnection.AddObserver(getInstance);
+                //newJoyConConnection.AddObserver(getInstance);
+                newJoyConConnection.AddFixedUpdateObserver(getInstance);
                 _joyconConnection_R = newJoyConConnection;
                 SerialNumber_R = newJoyConSerialNum;
                 await joyConSetUp(cancellationTokenOnAppQuit);
@@ -271,7 +272,7 @@ public class MainJoyconInput : Joycon_obs
         }
     }
 
-    public override void OnReadReport(string serialNumver,List<byte[]> reports)
+    public override void OnReadReport(string serialNumber,List<byte[]> reports)
     {
         _inputReportsInThisFrame_JoyconR = reports;
         int x30ReportNum = 0;
@@ -296,7 +297,7 @@ public class MainJoyconInput : Joycon_obs
             {
                 if (report[0] == 0x30)
                 {
-                    float sec = Time.deltaTime / x30ReportNum;
+                    float sec = Time.fixedDeltaTime / x30ReportNum;
                     RingconStrain = BitConverter.ToInt16(report, 39);
                     float gyro_x1 = 0.070f * (float)BitConverter.ToInt16(report, 19) ;
                     float gyro_y1 = 0.070f * (float)BitConverter.ToInt16(report, 21) ;
@@ -334,7 +335,7 @@ public class MainJoyconInput : Joycon_obs
     public static Quaternion ApplyAngVToPose(Quaternion pose,Vector3 angV,float sec)
     {
 
-        return (Quaternion.AngleAxis(angV.magnitude*sec*2.6f,pose*angV) * pose);
+        return (Quaternion.AngleAxis(angV.magnitude*sec,pose*angV) * pose);
         //return (Quaternion.AngleAxis(angV.magnitude*sec,pose*angV) * pose);
         
     }
