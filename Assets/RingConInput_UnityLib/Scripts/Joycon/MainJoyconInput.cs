@@ -137,7 +137,7 @@ public class MainJoyconInput : Joycon_obs
         //以前登録していたJoyConConnectionへの登録を解除 二重にJoyconConnectionに登録するのを防ぐ
         if (_joyconConnection_R != null)
         {
-            _joyconConnection_R.DelObserver(getInstance);
+            _joyconConnection_R.DelFixedUpdateObserver(getInstance);
             _joyconConnection_R = null;
         }
         string newJoyConSerialNum = "";
