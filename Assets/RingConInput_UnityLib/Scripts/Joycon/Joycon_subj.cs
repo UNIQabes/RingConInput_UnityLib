@@ -59,6 +59,7 @@ public class Joycon_subj
     //debug
     private static async UniTaskVoid UpdateStatic()
     {
+        
         //アプリが動いている間は動いている。
         while (!_cancellationTokenOnAppQuit.IsCancellationRequested)
         {
@@ -238,7 +239,7 @@ public class JoyConConnection
     private Channel<byte[]> _reportQueue=null;
     
     //Debug
-    private Channel<System.Diagnostics.Stopwatch> _swQueue=null;
+    private Channel<TimeSpan> _swQueue=null;
     private System.Diagnostics.Stopwatch wholeWatch;
 
     private IntPtr _joycon_dev = IntPtr.Zero;
@@ -261,7 +262,9 @@ public class JoyConConnection
         IsConnecting = false;
         _hidReadThread = null;
         _reportQueue = Channel.CreateSingleConsumerUnbounded<byte[]>();
-        _swQueue= Channel.CreateSingleConsumerUnbounded<System.Diagnostics.Stopwatch>();
+        _swQueue= Channel.CreateSingleConsumerUnbounded<TimeSpan>();
+        wholeWatch= new System.Diagnostics.Stopwatch();
+        wholeWatch.Start();
         _joycon_dev = IntPtr.Zero;
         _observers = new List<Joycon_obs>();
         ThisFrameInputs = new List<byte[]>();
@@ -272,20 +275,40 @@ public class JoyConConnection
 
     public void PopInputReportToJoyconObs()
     {
-
+        TimeSpan LastTime=TimeSpan.Zero;
         List<byte[]> sentReportInOneFrame = new List<byte[]>();
         
         while (_reportQueue.Reader.TryRead(out byte[] inputReportPtrBuf))
         {
             sentReportInOneFrame.Add(inputReportPtrBuf);
         }
+        while (_swQueue.Reader.TryRead(out TimeSpan aTime))
+        {
+            LastTime=aTime;
+        }
+
         
+
+        
+
         ThisFrameInputs = sentReportInOneFrame;
         foreach (Joycon_obs aObs in _observers)
         {
             aObs.OnReadReport(Serial_Number,sentReportInOneFrame);
         }
         _subCmdReplysInThisFrame = sentReportInOneFrame;
+        
+        if (LastTime!=TimeSpan.Zero)
+        {
+            TimeSpan dTime=wholeWatch.Elapsed-LastTime;
+            DebugOnGUI.Log($"DelayTime:{dTime.Milliseconds+ dTime.Seconds*1000}ms", "DelayTime");
+        }
+        else
+        {
+            //DebugOnGUI.Log($"DelayTime:0ms", "DelayTime");
+        }
+        
+
     }
 
     //JoyConとの接続時、必ずこれが呼ばれる。この関数は外部の利用者から呼ばれる。
@@ -560,7 +583,7 @@ public class JoyConConnection
             int ret_read = HIDapi.hid_read(_joycon_dev, inputReport, 50);
             if (ret_read > 0 && inputReport[0]!=0x00)
             {
-                _swQueue();
+                _swQueue.Writer.TryWrite(wholeWatch.Elapsed);
                 _reportQueue.Writer.TryWrite(inputReport);
                 sw.Reset();
                 sw.Start();
