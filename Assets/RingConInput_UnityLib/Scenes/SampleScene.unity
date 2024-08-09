@@ -441,10 +441,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94b5fdeb96aa54d47b561beea3b51c4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  onAButtonPushed_IsDisp: 0
-  onRButtonPushed_IsDisp: 0
-  onZRButtonPushed_IsDisp: 0
-  ringconStrain_IsDisp: 0
+  onAButtonPushed_IsDisp: 1
+  onRButtonPushed_IsDisp: 1
+  onZRButtonPushed_IsDisp: 1
+  ringconStrain_IsDisp: 1
 --- !u!4 &847177050
 Transform:
   m_ObjectHideFlags: 0

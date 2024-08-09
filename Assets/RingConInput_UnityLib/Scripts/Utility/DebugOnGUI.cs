@@ -10,10 +10,12 @@ public class DebugOnGUI : MonoBehaviour
     private static bool dictKeysDirtyFlag = false;
     
     //各ボタン入力を表示するかどうか
+    /*
     [SerializeField] private bool onAButtonPushed_IsDisp;
     [SerializeField] private bool onRButtonPushed_IsDisp;
     [SerializeField] private bool onZRButtonPushed_IsDisp;
     [SerializeField] private bool ringconStrain_IsDisp;
+    */
     
     // Start is called before the first frame update
     void Start()
