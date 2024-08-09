@@ -126,30 +126,14 @@ public class Joycon_subj
         HIDapi.hid_exit();
         _cTokenSourceOnAppQuit.Cancel();
     }
-    //新しい実装(終わり)
-
 
     static bool isInitialized = true;
     static Dictionary<string, JoyConConnection> _joyConConnections;
     const int JOYCON_R_PRODUCTID = 8199;
     const int JOYCON_L_PRODUCTID = 8198;
-
-
+    
     public List<Joycon_obs> observers_R;
-    IntPtr joyconR_dev;
     public List<Joycon_obs> observers_L;
-    IntPtr joyconL_dev;
-
-
-    bool joyconRIsConnectiong = false;
-    bool joyconLIsConnectiong = false;
-    string JoyconRSerialNum = "";
-    string JoyconLSerialNum = "";
-
-
-    Thread HidReadThreadR = null;
-    Thread HidReadThreadL = null;
-
 
     static CancellationTokenSource _cTokenSourceOnAppQuit;
     static CancellationToken _cancellationTokenOnAppQuit;
@@ -225,20 +209,6 @@ public class Joycon_subj
     public static JoyConConnection GetJoyConConnection(string serial_number)
     {
         return _joyConConnections[serial_number];
-    }
-
-    byte globalPacketNumber = 0;
-
-    
-    void sceneLoaded(Scene nextScene, LoadSceneMode mode)
-    {
-        Debug.Log(nextScene.name);
-        Debug.Log(mode);
-        if (HidReadThreadR != null) { HidReadThreadR.Abort(); }
-        HIDapi.hid_close(joyconR_dev);
-        if (HidReadThreadL != null) { HidReadThreadL.Abort(); }
-        HIDapi.hid_close(joyconL_dev);
-        SceneManager.sceneLoaded-= sceneLoaded;
     }
 }
 
@@ -661,7 +631,6 @@ public class JoyConConnection
             {
                 Debug.Log($"{Serial_Number} ConnectionLost");
                 Debug.Log($"{Serial_Number} HidReadLoop Stop");
-                //IsConnecting = false;
                 Disconnect();
                 break;
             }

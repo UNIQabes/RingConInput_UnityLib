@@ -22,19 +22,9 @@ public class DebugOnGUI : MonoBehaviour
     {
         
         singleton = this;
-        //LogMessage = new Dictionary<string, object>();
         
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-    private void LateUpdate()
-    {
-        //LogMessage.Clear();
-    }
+    
 
     public static void Log(object message,string key)
     {
