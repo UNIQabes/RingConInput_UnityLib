@@ -18,6 +18,7 @@ using UnityEngine.LowLevel;
 
 public class Joycon_subj
 {
+    
     //新しい実装
     private static Action _afterInitCallback=()=> { };
     private static bool _isAfterInit=false;
@@ -214,8 +215,10 @@ public class Joycon_subj
 
 public class JoyConConnection
 {
+    
     const int JOYCON_R_PRODUCTID = 8199;
     const int JOYCON_L_PRODUCTID = 8198;
+    
 
     public List<byte[]> ThisFrameInputs;
 
@@ -233,6 +236,10 @@ public class JoyConConnection
     private List<Joycon_obs> _observers = null;
     private Thread _hidReadThread = null;
     private Channel<byte[]> _reportQueue=null;
+    
+    //Debug
+    private Channel<System.Diagnostics.Stopwatch> _swQueue=null;
+    private System.Diagnostics.Stopwatch wholeWatch;
 
     private IntPtr _joycon_dev = IntPtr.Zero;
 
@@ -254,6 +261,7 @@ public class JoyConConnection
         IsConnecting = false;
         _hidReadThread = null;
         _reportQueue = Channel.CreateSingleConsumerUnbounded<byte[]>();
+        _swQueue= Channel.CreateSingleConsumerUnbounded<System.Diagnostics.Stopwatch>();
         _joycon_dev = IntPtr.Zero;
         _observers = new List<Joycon_obs>();
         ThisFrameInputs = new List<byte[]>();
@@ -264,7 +272,6 @@ public class JoyConConnection
 
     public void PopInputReportToJoyconObs()
     {
-        
 
         List<byte[]> sentReportInOneFrame = new List<byte[]>();
         
@@ -553,6 +560,7 @@ public class JoyConConnection
             int ret_read = HIDapi.hid_read(_joycon_dev, inputReport, 50);
             if (ret_read > 0 && inputReport[0]!=0x00)
             {
+                _swQueue();
                 _reportQueue.Writer.TryWrite(inputReport);
                 sw.Reset();
                 sw.Start();

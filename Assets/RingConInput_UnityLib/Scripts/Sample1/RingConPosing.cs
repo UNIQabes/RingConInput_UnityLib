@@ -11,8 +11,7 @@ public class RingConPosing : MonoBehaviour
         
     }
 
-    // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         //JoyconPose_R_Ring
         //this.transform.rotation = V3_MyUtil.rotationWithMatrix(MainJoyconInput.JoyconPose_R_Ring,
