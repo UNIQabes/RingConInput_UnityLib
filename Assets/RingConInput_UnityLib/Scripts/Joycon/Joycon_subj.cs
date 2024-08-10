@@ -670,6 +670,7 @@ public class JoyConConnection
         HIDapi.hid_write(_joycon_dev, sendData, (uint)reportlen);
         Debug.Log($"send subcommand{subCmdIDAndArgs[0]} to {Serial_Number}");
     }
+
     
 
 

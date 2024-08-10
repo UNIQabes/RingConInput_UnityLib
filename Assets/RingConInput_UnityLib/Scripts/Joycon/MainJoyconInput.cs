@@ -127,9 +127,8 @@ public class MainJoyconInput : Joycon_obs
         cancellationTokenSourceOnAppQuit.Cancel();
         
     }
-
     
-
+    
 
     //JoyConを接続し直す
     public static async UniTask<bool> ReConnectJoyconAsync()
@@ -250,6 +249,7 @@ public class MainJoyconInput : Joycon_obs
             await _joyconConnection_R.SendSubCmd(new byte[] { 0x30, 0b00001111 }, cancellationTokenOnAppQuit);
 
             _joyconConnection_R.SendRumble(1000,0.5f,400,0.5f);
+
 
             ConnectInfo_JoyconR = JoyConConnectInfo.JoyConIsReady;
             Debug.Log($"{SerialNumber_R}:Joyconのセットアップが完了しました");
@@ -418,6 +418,42 @@ public class MainJoyconInput : Joycon_obs
         
         Debug.Log($"キャリブレーション設定完了:{new Vector3(JoyconR_GyroXCalibration, JoyconR_GyroYCalibration, JoyconR_GyroZCalibration)}(deg/s)") ;
     }
+
+    
+
+    public static void SetHomeLight(byte miniCycleDulationUnit_4bitEx,byte LEDStartIntence_4bitEx,byte NumberOfFullCycle_4bitEx,(byte LEDIntence_4bitEx,byte StayDulation_4bitEx,byte TransDulation_4bitEx)[] lightPattern)
+    {
+        int miniCycleNum = Math.Min(lightPattern.Length,15);
+        int subcmdLen=1+2+(miniCycleNum+1)/2*3;
+        byte[] subcmd = new byte[subcmdLen];
+        subcmd[0] = 0x38;
+        subcmd[1] = (byte)((miniCycleNum<<4)|(miniCycleDulationUnit_4bitEx&0x0F));
+        subcmd[2] = (byte)((LEDStartIntence_4bitEx<<4)|(NumberOfFullCycle_4bitEx&0x0F));
+        for (int i=0;i<(lightPattern.Length+1)/2;i++)
+        {
+            int index1 = i*2;
+            int index2 = i*2+1;
+            
+            byte ledIntence1_4bitEx=0x0;
+            byte stayDulation1_4bitEx=0x0;
+            byte transDulation1_4bitEx=0x0;
+            (ledIntence1_4bitEx, stayDulation1_4bitEx, transDulation1_4bitEx) = lightPattern[index1];
+            byte ledIntence2_4bitEx=0x0;
+            byte stayDulation2_4bitEx=0x0;
+            byte transDulation2_4bitEx=0x0;
+            if (index2 < miniCycleNum)
+            {
+                (ledIntence2_4bitEx, stayDulation2_4bitEx, transDulation2_4bitEx) = lightPattern[index2];
+            }
+
+            int startIndex=3+i*3;
+            subcmd[startIndex] = (byte)((ledIntence1_4bitEx<<4)|(ledIntence2_4bitEx&0x0F));
+            subcmd[startIndex+1] = (byte)((transDulation1_4bitEx<<4)|(stayDulation1_4bitEx&0x0F));
+            subcmd[startIndex+2] = (byte)((transDulation2_4bitEx<<4)|(stayDulation2_4bitEx&0x0F));
+        }
+        _joyconConnection_R.SendSubCmd(subcmd,cancellationTokenOnAppQuit).Forget();
+    }
+    
 }
 
 public enum JoyConConnectInfo
