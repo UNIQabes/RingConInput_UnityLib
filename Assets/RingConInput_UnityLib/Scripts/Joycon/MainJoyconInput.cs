@@ -6,7 +6,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 
 
-
+//プログラマーにJoyconの入力を提供するクラス
 public class MainJoyconInput : Joycon_obs
 {
     private static MainJoyconInput instance=null;

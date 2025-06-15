@@ -19,7 +19,6 @@ using UnityEngine.LowLevel;
 public class Joycon_subj
 {
     
-    //新しい実装
     private static Action _afterInitCallback=()=> { };
     private static bool _isAfterInit=false;
     public static void RegisterAfterInitCallback(Action callback)
@@ -36,6 +35,7 @@ public class Joycon_subj
     }
 
 
+    //このAttributeによって、ゲーム起動時にこの初期化関数が呼ばれる。
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Init()
     {
@@ -49,6 +49,7 @@ public class Joycon_subj
 
         //Application終了時の処理を設定
         Application.quitting += OnApplicatioQuitStatic;
+        //Update/FixedUpdateごとにJoycon_obsのコールバックを呼び出すスレッドを立ち上げる
         UpdateStatic().Forget();
         FixedUpdateStatic().Forget();
 
@@ -118,7 +119,7 @@ public class Joycon_subj
 
     private static void OnApplicatioQuitStatic()
     {
-        Debug.Log("アプリ、終わったンゴねぇ…");
+        //Debug.Log("アプリ、終わったンゴねぇ…");
         foreach (KeyValuePair<string, JoyConConnection> aPair in _joyConConnections)
         {
             aPair.Value.Disconnect();
@@ -212,7 +213,7 @@ public class Joycon_subj
     }
 }
 
-
+//オブザーバーパターンにおける、Joycon_obs(Observer)に対するSubject
 public class JoyConConnection
 {
     
@@ -275,7 +276,8 @@ public class JoyConConnection
         _subCmdReplysInThisFrame = new List<byte[]>();
         _cTokenOnAppQuit = cancellationTokenOnAppQuit;
     }
-
+    
+    //Joyconからの入力ごとにObserverのOnReadReportを呼び出す。
     public void PopInputReportToJoyconObs()
     {
         TimeSpan LastTime=TimeSpan.Zero;
@@ -555,7 +557,9 @@ public class JoyConConnection
         sendData[9] = 0x36;
         HIDapi.hid_write(_joycon_dev, sendData, (uint)9);
     }
-
+    
+    //Joycon側にサブコマンドを送る。初期化処理でJoyconがジャイロセンサーや加速度センサー、
+    //リングコンの圧力センサーを送るように設定する時に使用する。
     public async UniTask SendSubCmd(byte[] subCmd, CancellationToken cancellationToken)
     {
         byte[] zeroByteBuf = new byte[0];

@@ -4,6 +4,7 @@ using System.Collections;
 using System;
 using System.Text;
 
+//HIDAPIのエントリポイント
 public class HIDapi
 {
 
