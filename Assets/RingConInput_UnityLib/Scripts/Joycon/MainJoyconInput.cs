@@ -93,7 +93,6 @@ public class MainJoyconInput : Joycon_obs
             }
             await UniTask.Yield(PlayerLoopTiming.EarlyUpdate,cancellationTokenOnAppQuit);
         }
-        
     }
 
     static async UniTaskVoid fixedupdatestatic()
@@ -123,9 +122,7 @@ public class MainJoyconInput : Joycon_obs
 
     private static void OnApplicatioQuitStatic()
     {
-
         cancellationTokenSourceOnAppQuit.Cancel();
-        
     }
     
     

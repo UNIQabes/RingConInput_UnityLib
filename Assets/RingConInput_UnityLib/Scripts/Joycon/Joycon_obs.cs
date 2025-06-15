@@ -13,6 +13,6 @@ public class Joycon_obs
     //接続解除時に呼ばれる
     public virtual void OnDisConnect()
     {
-
+        
     }
 }

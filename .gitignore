@@ -65,3 +65,5 @@ crashlytics-build.properties
 .vscode/
 
 .idea/
+
+/build.app
